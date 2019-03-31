@@ -1,29 +1,24 @@
 //
 //  main.swift
-//  htc_learn_1
+//  newCopy
 //
-//  Created by Princess Max on 26.03.2019.
-//  Copyright © 2019 Princess Max. All rights reserved.
+//  Created by UserMac on 27/03/2019.
+//  Copyright © 2019 UserMac. All rights reserved.
 //
 
 import Foundation
-enum OptionType:String{
+
+enum OptionType: String,CaseIterable {
     case add = "-a"
-    case remove = "r"
-    case showAll = "all"
-    case uncnown
-    init(value:String){
-        switch value {
-        case "-a": self = .add
-        case "-r": self = .remove
-        case "-all": self = .showAll
-        default:self = .uncnown
-        }
-    }
+    case remove = "-r"
+    case list = "-l"
+    case exit
+    case help
 }
-enum RemoveType:String{
-    case field = "field"
-    case byIndexs = "indexs"
+
+enum RemoveType: String,CaseIterable{
+    case field = "-f"
+    case byIndexs = "-ids"
     case byIndex
     init(value:String){
         switch value {
@@ -34,14 +29,15 @@ enum RemoveType:String{
     }
 }
 protocol UserProtocol {
-    var userName:String {get set}
-    var lastName:String {get set}
+    var userName: String {get set}
+    var lastName: String {get set}
     var phoneNumber: Int {get set}
 }
+
 class User: UserProtocol{
     var userName: String = ""
-    var lastName: String = ""
-    var phoneNumber: Int = 0
+    var lastName = ""
+    var phoneNumber = 0
     
     init(userName:String, lastName: String, phoneNumber:Int) {
         self.userName = userName
@@ -50,8 +46,10 @@ class User: UserProtocol{
     }
 }
 class UserData{
-   static var users = [User(userName: "max", lastName: "asd", phoneNumber: 1),User(userName: "asd", lastName: "asd", phoneNumber: 1),]
+    static var users:[User] = [User(userName: "max", lastName: "asd", phoneNumber: 1),User(userName: "asd", lastName: "asd", phoneNumber: 1),]
 }
+
+
 private class ConsoleWork{
     func getInput(getedParam: String) -> String {
         print("\(getedParam)")
@@ -61,48 +59,81 @@ private class ConsoleWork{
         return (strData?.trimmingCharacters(in: CharacterSet.newlines)) ?? ""
     }
 }
+
 class Programm{
-    func getOption(_ option:String) -> (option:OptionType, value: String) {
-        return (OptionType(value: option), option)
-    }
-    func getRemoveOption(_ option:String) -> (option:RemoveType, value: String) {
-        return (RemoveType(value: option), option)
-    }
     func addUser(user:User){
         UserData.users.append(user)
+        print("user has been added!")
     }
+    
     func displayUsers() {
+        print("All users: \n")
         for user in UserData.users{
-            print("user name \(user.userName) last name : \(user.lastName) phone : \(user.phoneNumber)")
+            print(" user name \(user.userName) last name : \(user.lastName) phone : \(user.phoneNumber)")
         }
     }
-    func removeBy(commandParrams:[Substring]){
-        let (option, _) = getRemoveOption(String(commandParrams[1]))
+    
+    func removeBy(commandParrams: [Substring]) {
+        let option = RemoveType(value: String(commandParrams[1]))
         switch option {
-            case .field:
-                UserData.users.removeAll(where: {$0.userName == commandParrams[2] || $0.lastName == commandParrams[2] || $0.phoneNumber == Int(commandParrams[2]) ?? 0})
-            case .byIndexs:
-                print("from : \(commandParrams[2]) to: \(commandParrams[3])")
-            case .byIndex:
-                print(String(commandParrams[1]))
+        case .field:
+            UserData.users.removeAll(where: {$0.userName == commandParrams[2] || $0.lastName == commandParrams[2] || $0.phoneNumber == Int(commandParrams[2]) ?? 0})
+            print("user: \(commandParrams[2]) has been deleted!")
+        case .byIndexs:
+            guard let indexStart = Int(commandParrams[2]), let indexEnd = Int(commandParrams[3]) else { print("invalid index"); return}
+            if (indexStart < 0 || indexEnd > UserData.users.count - 1){
+                print("input ids are out from range: \n users length is \(UserData.users.count)")
+                return
+            }
+            for index in indexStart...indexEnd {
+                UserData.users.remove(at: index)
+            }
+            displayUsers()
+        case .byIndex:
+            guard let index = Int(commandParrams[1]) else { print("invalid index"); return}
+            UserData.users.remove(at: index)
+            print(String(commandParrams[1]))
         }
+        
     }
 }
 var programm = Programm()
-let inputStreamCommand = ConsoleWork().getInput(getedParam: "Set params")
-let commandParrams = inputStreamCommand.split(separator: " ");
-let (option, _) = programm.getOption(String(commandParrams[0]))
-switch option {
-    case .add:
-        let user =  User(userName: String(commandParrams[1]), lastName: String(commandParrams[2]), phoneNumber: Int(commandParrams[3]) ?? 0)
-        programm.addUser(user: user)
-    case .remove:
-        programm.removeBy(commandParrams: commandParrams)
-    case .uncnown:
-        print("this is uncnown func")
-    case .showAll:
-        programm.displayUsers()
-}
+var option:OptionType = .help
+repeat {
+    let inputStreamCommand = ConsoleWork().getInput(getedParam: "Set params;")
+    if inputStreamCommand.isEmpty{
+        continue
+    }
+    let commandParrams = inputStreamCommand.split(separator: " ");
+    guard let option = OptionType(rawValue: String(commandParrams[0])) else {print("it's unknown function please try again, \n to know about available params write 'help'"); continue}
+    if (option == OptionType.exit){
+        break
+    }
+    switch option{
+        case .add:
+            let user =  User(userName: String(commandParrams[1]), lastName: String(commandParrams[2]), phoneNumber: Int(commandParrams[3]) ?? 0)
+            programm.addUser(user: user)
+        case .remove:
+            programm.removeBy(commandParrams: commandParrams)
+        case .list:
+            programm.displayUsers()
+        case .exit:
+             print("goodbye!")
+        case .help:
+            for typeOption in OptionType.allCases {
+                print(" \(typeOption.rawValue) : \(typeOption)")
+                if(typeOption == OptionType.remove){
+                    for removeOption in RemoveType.allCases {
+                        print(" | \(removeOption.rawValue) : \(removeOption)")
+                    }
+                }
+            }
+    }
+    print("\n")
+        
 
-var a = 1
+} while option != OptionType.exit
+print("goodbye! have a nice day :)")
+
+
 
